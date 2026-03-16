@@ -1,11 +1,6 @@
 import json
 from pathlib import Path
 
-from rich import print
-from rich.console import Console
-from rich.table import Table
-from rich.text import Text
-
 from module.data import Bonus, OpponentSummary, Settlement, User
 from module.jansoul import Jansoul
 
@@ -255,6 +250,11 @@ class Jan:
         return int(user.chip * (self.chip))
 
     def show_result(self):
+        from rich import print
+        from rich.console import Console
+        from rich.table import Table
+        from rich.text import Text
+
         for user in self.users:
             print(f"\n{user.nickname}")
             print(f"・最終得点: {user.point} ({user.score})")
