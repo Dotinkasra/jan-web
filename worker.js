@@ -36,6 +36,7 @@ h1,h2,h3{margin:0 0 12px}.lead{margin-top:8px;color:#5a6a82}
 .form-grid{display:grid;gap:14px;background:#fff;border:1px solid #d5dce8;border-radius:12px;padding:16px}
 .form-row{display:grid;gap:12px}.form-row.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.form-row.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .form-grid label{display:grid;gap:6px;color:#5a6a82}.form-grid input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px}
+.form-grid select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px;background:#fff}
 .form-area{display:grid;gap:18px}.submit-wide{display:block;justify-self:stretch;width:100%;min-height:44px}
 .card,.settings-card{background:#fff;border:1px solid #d5dce8;border-radius:12px;padding:16px;margin-bottom:16px}
 .user-summary,.settings-summary{list-style:none;display:flex;justify-content:space-between;gap:12px;cursor:pointer}
@@ -115,10 +116,20 @@ function indexHtml(error = "") {
         <div class="form-grid">
           <div class="form-row cols-3">
             <label>牌譜ファイル<input type="file" name="paifu_file" accept=".json,.txt" required /></label>
+            <label>レートプリセット
+              <select name="preset" id="preset-select">
+                <option value="custom" selected>カスタム</option>
+                <option value="tenichi">テンイチ</option>
+                <option value="tensan">テンサン</option>
+                <option value="tengo">テンゴ</option>
+                <option value="tenpin">テンピン</option>
+                <option value="pin_tonpu">ピン東風</option>
+              </select>
+            </label>
             <label>レート<input type="number" name="rate" value="50" required /></label>
-            <label>チップ金額<input type="number" name="chip" value="500" required /></label>
           </div>
-          <div class="form-row cols-2">
+          <div class="form-row cols-3">
+            <label>チップ金額<input type="number" name="chip" value="100" required /></label>
             <label>ウマ1<input type="number" name="uma_1" value="10" required /></label>
             <label>ウマ2<input type="number" name="uma_2" value="20" required /></label>
           </div>
@@ -147,6 +158,22 @@ function indexHtml(error = "") {
     </main>
     <script>
     const form=document.getElementById("analyze-form");
+    const presetSelect=form.querySelector('select[name="preset"]');
+    const presets={
+      tenichi:{rate:10,chip:50,uma_1:10,uma_2:20},
+      tensan:{rate:30,chip:100,uma_1:5,uma_2:10},
+      tengo:{rate:50,chip:100,uma_1:5,uma_2:10},
+      tenpin:{rate:100,chip:500,uma_1:10,uma_2:30},
+      pin_tonpu:{rate:100,chip:1000,uma_1:20,uma_2:50}
+    };
+    presetSelect.addEventListener("change",()=>{
+      const preset=presets[presetSelect.value];
+      if(!preset)return;
+      form.rate.value=preset.rate;
+      form.chip.value=preset.chip;
+      form.uma_1.value=preset.uma_1;
+      form.uma_2.value=preset.uma_2;
+    });
     form.addEventListener("submit",async(e)=>{
       e.preventDefault();
       const file=(form.querySelector('input[name="paifu_file"]').files||[])[0];
