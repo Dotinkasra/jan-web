@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>雀魂 牌譜リザルト</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>雀魂 牌譜リザルト</h1>
+      <p class="lead">牌譜JSONをアップロードして精算結果を表示します。</p>
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+
+      <form action="/analyze" method="post" enctype="multipart/form-data" class="form-area">
+        <div class="form-grid">
+          <div class="form-row cols-3">
+            <label>牌譜ファイル
+              <input type="file" name="paifu_file" accept=".json,.txt" required />
+            </label>
+
+            <label>レート
+              <input type="number" name="rate" value="50" required />
+            </label>
+
+            <label>チップ金額
+              <input type="number" name="chip" value="500" required />
+            </label>
+          </div>
+
+          <div class="form-row cols-2">
+            <label>ウマ1
+              <input type="number" name="uma_1" value="10" required />
+            </label>
+
+            <label>ウマ2
+              <input type="number" name="uma_2" value="20" required />
+            </label>
+          </div>
+
+          <div class="form-row cols-2">
+            <label>初期点
+              <input type="number" name="oka_1" value="25000" required />
+            </label>
+
+            <label>オカ
+              <input type="number" name="oka_2" value="30000" required />
+            </label>
+          </div>
+
+          <div class="form-row cols-3">
+            <label>オールスターチップ倍率
+              <input type="number" name="all_star_chip" value="5" required />
+            </label>
+
+            <label>役満ツモチップ倍率
+              <input type="number" name="yiman_tumo_chip" value="5" required />
+            </label>
+
+            <label>役満ロンチップ倍率
+              <input type="number" name="yiman_chip" value="10" required />
+            </label>
+          </div>
+        </div>
+        <button type="submit" class="submit-wide">結果を表示</button>
+      </form>
+    </main>
+  </body>
+</html>
