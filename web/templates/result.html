@@ -13,102 +13,150 @@
         <a href="/" class="button-link">別の牌譜を読み込む</a>
       </header>
 
+      <details class="settings-card settings-toggle" open>
+        <summary class="settings-summary">
+          <h2>現在の設定</h2>
+          <span class="summary-hint" aria-hidden="true"></span>
+        </summary>
+        <div class="settings-grid">
+          <div class="settings-row cols-3">
+            <div><span>レート</span><strong>{{ settings.rate }}</strong></div>
+            <div><span>チップ金額</span><strong>{{ settings.chip }}</strong></div>
+            <div><span>ウマ</span><strong>{{ settings.uma_1 }}-{{ settings.uma_2 }}</strong></div>
+          </div>
+          <div class="settings-row cols-3">
+            <div><span>初期点</span><strong>{{ settings.oka_1 }}</strong></div>
+            <div><span>オカ</span><strong>{{ settings.oka_2 }}</strong></div>
+          </div>
+          <div class="settings-row cols-3">
+            <div><span>オールスターチップ倍率</span><strong>{{ settings.all_star_chip }}</strong></div>
+            <div><span>役満ツモチップ倍率</span><strong>{{ settings.yiman_tumo_chip }}</strong></div>
+            <div><span>役満ロンチップ倍率</span><strong>{{ settings.yiman_chip }}</strong></div>
+          </div>
+        </div>
+      </details>
+
+      <div class="toggle-toolbar">
+        <button type="button" id="expand-all">全部開く</button>
+        <button type="button" id="collapse-all">全部閉じる</button>
+      </div>
+
       {% for user in users %}
-      <section class="card">
-        <h2>{{ user.nickname }}</h2>
-        <p class="summary-line">
-          最終得点: {{ user.point }} ( <span class="{{ 'negative' if user.score_negative else 'positive' }}">{{ user.score }}</span> )
-        </p>
+      <details class="card user-card" data-user-card>
+        <summary class="user-summary">
+          <div>
+            <h2>{{ user.nickname }}</h2>
+            <p class="summary-line">
+              最終得点: {{ user.point }} ( <span class="{{ 'negative' if user.score_negative else 'positive' }}">{{ user.score }}</span> )
+            </p>
+          </div>
+          <span class="summary-hint" aria-hidden="true"></span>
+        </summary>
 
-        <h3>総合得点</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>得点</th>
-              <th>祝儀収益</th>
-              <th>祝儀支払</th>
-              <th>結果</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{{ user.score_yen }}</td>
-              <td>{{ user.bonus_yen }}</td>
-              <td class="negative">-{{ user.payment_yen }}</td>
-              <td class="{{ 'negative' if user.result_negative else 'positive' }}">{{ user.result_yen }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="card-content">
+          <h3>総合得点</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>得点</th>
+                <th>祝儀収益</th>
+                <th>祝儀支払</th>
+                <th>結果</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ user.score_yen }}</td>
+                <td>{{ user.bonus_yen }}</td>
+                <td class="negative">-{{ user.payment_yen }}</td>
+                <td class="{{ 'negative' if user.result_negative else 'positive' }}">{{ user.result_yen }}</td>
+              </tr>
+            </tbody>
+          </table>
 
-        <h3>祝儀明細</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>種類</th>
-              <th>ロン</th>
-              <th>ツモ</th>
-              <th>チップ枚数</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in user.bonus_rows %}
-            <tr>
-              <td>{{ row.name }}</td>
-              <td>{{ row.ron }}</td>
-              <td>{{ row.tsumo }}</td>
-              <td>{{ row.chip }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+          <h3>祝儀明細</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>種類</th>
+                <th>ロン</th>
+                <th>ツモ</th>
+                <th>チップ枚数</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in user.bonus_rows %}
+              <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.ron }}</td>
+                <td>{{ row.tsumo }}</td>
+                <td>{{ row.chip }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
 
-        <h3>支払い明細</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>振込先</th>
-              <th>内容</th>
-              <th>チップ枚数</th>
-              <th>金額</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in user.payment_rows %}
-            <tr>
-              <td>{{ row.to }}</td>
-              <td>{{ row.type }}</td>
-              <td>{{ row.chip }}</td>
-              <td>{{ row.yen }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+          <h3>支払い明細</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>振込先</th>
+                <th>内容</th>
+                <th>チップ枚数</th>
+                <th>金額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in user.payment_rows %}
+              <tr>
+                <td>{{ row.to }}</td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.chip }}</td>
+                <td>{{ row.yen }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
 
-        <h3>支払い集計（相手別）</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>相手</th>
-              <th>得点精算</th>
-              <th>受け取りチップ</th>
-              <th>支払いチップ</th>
-              <th>合計金額</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in user.opponent_rows %}
-            <tr>
-              <td>{{ row.to }}</td>
-              <td class="{{ 'negative' if row.score_negative else 'positive' }}">{{ row.score_yen }}</td>
-              <td>{{ row.receive_chip }}</td>
-              <td>{{ row.pay_chip }}</td>
-              <td class="{{ 'negative' if row.total_negative else 'positive' }}">{{ row.total_yen }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </section>
+          <h3>支払い集計（相手別）</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>相手</th>
+                <th>得点精算</th>
+                <th>受け取りチップ</th>
+                <th>支払いチップ</th>
+                <th>合計金額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in user.opponent_rows %}
+              <tr>
+                <td>{{ row.to }}</td>
+                <td class="{{ 'negative' if row.score_negative else 'positive' }}">{{ row.score_yen }}</td>
+                <td>{{ row.receive_chip }}</td>
+                <td>{{ row.pay_chip }}</td>
+                <td class="{{ 'negative' if row.total_negative else 'positive' }}">{{ row.total_yen }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
       {% endfor %}
     </main>
+    <script>
+      const cards = document.querySelectorAll("[data-user-card]");
+      document.getElementById("expand-all").addEventListener("click", () => {
+        cards.forEach((card) => {
+          card.open = true;
+        });
+      });
+      document.getElementById("collapse-all").addEventListener("click", () => {
+        cards.forEach((card) => {
+          card.open = false;
+        });
+      });
+    </script>
   </body>
 </html>

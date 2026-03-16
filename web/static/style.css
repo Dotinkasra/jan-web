@@ -55,6 +55,12 @@ button {
   font-size: 14px;
 }
 
+.toggle-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
 .form-grid {
   display: grid;
   gap: 14px;
@@ -119,6 +125,32 @@ button {
   margin-bottom: 16px;
 }
 
+.user-summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.user-summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary-hint::before {
+  content: "開く";
+  color: var(--subtext);
+  font-size: 13px;
+}
+
+.user-card[open] .summary-hint::before {
+  content: "閉じる";
+}
+
+.card-content {
+  padding-top: 8px;
+}
+
 .summary-line {
   color: var(--subtext);
   margin-top: 0;
@@ -156,4 +188,65 @@ th {
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 14px;
+}
+
+.settings-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.settings-summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.settings-row {
+  display: grid;
+  gap: 10px 14px;
+}
+
+.settings-row.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-row.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-grid .settings-row > div {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-grid span {
+  color: var(--subtext);
+  font-size: 12px;
+}
+
+.settings-grid strong {
+  font-size: 15px;
+}
+
+@media (max-width: 760px) {
+  .settings-row.cols-2,
+  .settings-row.cols-3 {
+    grid-template-columns: 1fr;
+  }
 }
