@@ -2,11 +2,13 @@ from module.data import User
 
 
 def _yen(value: int) -> str:
-    return f"{value:,}円"
+    # return f"{value:,}円"
+    return f"{value:,} G"
 
 
 def _signed_yen(value: int) -> str:
-    return f"{value:+,}円"
+    # return f"{value:+,}円"
+    return f"{value:+,} G"
 
 
 def _bonus_table(user: User) -> tuple[list[dict], int, int]:
@@ -34,19 +36,29 @@ def _bonus_table(user: User) -> tuple[list[dict], int, int]:
     chip_total_tobi = ron_chip_tobi + tumo_chip_tobi
 
     chip_total = (
-        chip_total_aka
-        + chip_total_ura
-        + chip_total_ippatsu
-        + chip_total_allstar
-        + chip_total_yiman
-        + chip_total_tobi
+        chip_total_aka + chip_total_ura + chip_total_ippatsu + chip_total_allstar + chip_total_yiman + chip_total_tobi
     )
     chip_total_yen = chip_total * user.chip_yen_unit
 
     rows = [
-        {"name": "赤ドラ", "ron": f"{user.aka_dora}回", "tsumo": f"{user.aka_dora_tumo}回", "chip": f"{chip_total_aka}枚"},
-        {"name": "裏ドラ", "ron": f"{user.ura_dora}回", "tsumo": f"{user.ura_dora_tumo}回", "chip": f"{chip_total_ura}枚"},
-        {"name": "一発", "ron": f"{user.ippatsu}回", "tsumo": f"{user.ippatsu_tumo}回", "chip": f"{chip_total_ippatsu}枚"},
+        {
+            "name": "赤ドラ",
+            "ron": f"{user.aka_dora}回",
+            "tsumo": f"{user.aka_dora_tumo}回",
+            "chip": f"{chip_total_aka}枚",
+        },
+        {
+            "name": "裏ドラ",
+            "ron": f"{user.ura_dora}回",
+            "tsumo": f"{user.ura_dora_tumo}回",
+            "chip": f"{chip_total_ura}枚",
+        },
+        {
+            "name": "一発",
+            "ron": f"{user.ippatsu}回",
+            "tsumo": f"{user.ippatsu_tumo}回",
+            "chip": f"{chip_total_ippatsu}枚",
+        },
         {
             "name": "オールスター",
             "ron": f"{user.allstar}回",

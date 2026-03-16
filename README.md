@@ -12,36 +12,50 @@ uv run uvicorn web.app:app --reload
 
 ブラウザで `http://127.0.0.1:8000` を開いてください。
 
-## Cloudflare Workers デプロイ
+## Cloud Run デプロイ（推奨）
 
-### 1. ログイン
+### 1. 前提
 
-```bash
-npx wrangler login
-```
+- Google Cloud プロジェクト作成済み
+- `gcloud` CLI インストール済み
+- 課金有効化済み
 
-### 2. 依存インストール（Workers 用）
-
-```bash
-uv sync --group dev
-```
-
-### 3. ローカル検証
+### 2. 初期セットアップ
 
 ```bash
-uv run pywrangler dev
+gcloud auth login
+gcloud config set project <YOUR_PROJECT_ID>
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
 ```
 
-### 4. デプロイ
+### 3. デプロイ
 
 ```bash
-uv run pywrangler deploy
+cd /Users/twemu/Program/jan-web
+gcloud run deploy jan-web \
+  --source . \
+  --region asia-northeast1 \
+  --allow-unauthenticated
 ```
 
-`wrangler.toml` の `name` を変更すると、Workers 側のサービス名を変えられます。
+完了後に表示される URL が公開エンドポイントです。
+
+### 4. 再デプロイ
+
+```bash
+gcloud run deploy jan-web \
+  --source . \
+  --region asia-northeast1 \
+  --allow-unauthenticated
+```
+
+## 補足: Cloudflare Workers
+
+Workers 用の設定ファイル (`wrangler.toml` など) は残していますが、  
+FastAPI 構成では無料枠のサイズ制限に引っかかりやすいため、運用は Cloud Run を推奨します。
 
 ## ディレクトリ構成
 
-- `web/`: FastAPI, テンプレート, CSS, Workersエントリーポイント
-- `module/`: 既存の精算ロジック
-- `wrangler.toml`: Cloudflare Workers 設定
+- `web/`: FastAPI, テンプレート, CSS
+- `module/`: 精算ロジック
+- `Dockerfile`: Cloud Run 実行イメージ定義

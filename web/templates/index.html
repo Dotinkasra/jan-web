@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>雀魂 牌譜リザルト</title>
     <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/favicon.ico" />
   </head>
   <body>
     <main class="container">
@@ -15,7 +16,7 @@
       <div class="error">{{ error }}</div>
       {% endif %}
 
-      <form action="/analyze" method="post" enctype="multipart/form-data" class="form-area">
+      <form action="/analyze" method="post" enctype="multipart/form-data" class="form-area" id="analyze-form">
         <div class="form-grid">
           <div class="form-row cols-3">
             <label>牌譜ファイル
@@ -68,5 +69,46 @@
         <button type="submit" class="submit-wide">結果を表示</button>
       </form>
     </main>
+    <script>
+      const form = document.getElementById("analyze-form");
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const fileInput = form.querySelector('input[name="paifu_file"]');
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          alert("牌譜ファイルを選択してください。");
+          return;
+        }
+
+        try {
+          const text = await file.text();
+          const paifuJson = JSON.parse(text);
+          const payload = {
+            paifu_json: paifuJson,
+            rate: form.rate.value,
+            chip: form.chip.value,
+            uma_1: form.uma_1.value,
+            uma_2: form.uma_2.value,
+            oka_1: form.oka_1.value,
+            oka_2: form.oka_2.value,
+            all_star_chip: form.all_star_chip.value,
+            yiman_tumo_chip: form.yiman_tumo_chip.value,
+            yiman_chip: form.yiman_chip.value,
+          };
+
+          const response = await fetch("/analyze-json", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const html = await response.text();
+          document.open();
+          document.write(html);
+          document.close();
+        } catch (error) {
+          alert(`牌譜の送信に失敗しました: ${error}`);
+        }
+      });
+    </script>
   </body>
 </html>

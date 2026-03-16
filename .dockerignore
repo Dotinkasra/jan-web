@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+.venv-workers
+.wrangler
+python_modules
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+.DS_Store
+uv.lock
+worker.py
+wrangler.toml
