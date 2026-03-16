@@ -67,11 +67,39 @@ function getFaviconIcoBytes() {
 }
 
 function layout(title, body) {
+  const siteTitle = "ご祝儀精算ツール 雀魂対応";
+  const seoDescription =
+    "雀魂の牌譜JSONをアップロードして、ご祝儀・点棒を含む四人麻雀の精算結果をわかりやすく表示するツールです。";
+  const siteUrl = "https://jan-web.tyekepon.workers.dev";
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: siteTitle,
+    description: seoDescription,
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Web",
+    url: siteUrl,
+    inLanguage: "ja",
+  });
   return (
     "<!doctype html><html lang='ja'><head><meta charset='UTF-8'/>" +
     "<meta name='viewport' content='width=device-width, initial-scale=1.0'/>" +
-    `<title>${title}</title><link rel='stylesheet' href='/static/style.css'/>` +
-    "<link rel='icon' href='/favicon.ico'/></head><body>" +
+    `<title>${title}</title>` +
+    `<meta name='description' content='${escapeHtml(seoDescription)}'/>` +
+    "<meta name='robots' content='index,follow'/>" +
+    "<meta name='keywords' content='雀魂,麻雀,ご祝儀,精算,牌譜,四人麻雀'/>" +
+    `<link rel='canonical' href='${siteUrl}/'/>` +
+    `<meta property='og:site_name' content='${escapeHtml(siteTitle)}'/>` +
+    `<meta property='og:title' content='${escapeHtml(title)}'/>` +
+    `<meta property='og:description' content='${escapeHtml(seoDescription)}'/>` +
+    "<meta property='og:type' content='website'/>" +
+    `<meta property='og:url' content='${siteUrl}/'/>` +
+    `<meta name='twitter:title' content='${escapeHtml(title)}'/>` +
+    `<meta name='twitter:description' content='${escapeHtml(seoDescription)}'/>` +
+    "<meta name='twitter:card' content='summary'/>" +
+    "<link rel='stylesheet' href='/static/style.css'/>" +
+    "<link rel='icon' href='/favicon.ico'/>" +
+    `<script type='application/ld+json'>${jsonLd}</script></head><body>` +
     `${body}</body></html>`
   );
 }
@@ -80,7 +108,7 @@ function indexHtml(error = "") {
   const errorBlock = error ? `<div class='error'>${escapeHtml(error)}</div>` : "";
   const body = `
     <main class="container">
-      <h1>四人麻雀精算ツール 雀魂対応</h1>
+      <h1>ご祝儀精算ツール 雀魂対応</h1>
       <p class="lead">牌譜JSONをアップロードして精算結果を表示します。</p>
       ${errorBlock}
       <form class="form-area" id="analyze-form">
@@ -106,6 +134,16 @@ function indexHtml(error = "") {
         </div>
         <button type="submit" class="submit-wide">結果を表示</button>
       </form>
+      <section class="settings-card" aria-label="免責と注意事項">
+        <h2>免責と注意事項</h2>
+        <ul>
+          <li>本サイト（以下「本サービス」）は、雀魂の牌譜データに限り対応します。これ以外の形式・サービスの牌譜については、正確な結果を保証しません。</li>
+          <li>雀魂の牌譜保存方法は、<a href="https://wikiwiki.jp/majsoul-api/%E7%89%8C%E8%AD%9C%E3%82%92%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AB%E4%BF%9D%E5%AD%98%E3%81%99%E3%82%8B%E3%81%AB%E3%82%83" target="_blank" rel="noopener noreferrer">こちら</a>を参照してください。牌譜の取得・保存・利用は、利用者ご自身の責任で、雀魂の利用規約その他適用ルールに従って行ってください。</li>
+          <li>本サービスを賭博その他法令または公序良俗に反する目的で利用することを禁止します。</li>
+          <li>本サービスは、フリー雀荘のご祝儀ルールに対応した打牌検討および麻雀技術の向上を目的として提供しています。</li>
+          <li>本サービスの利用または利用不能により生じた一切の損害（牌譜保存等に起因する雀魂アカウント停止等）について、運営者は責任を負いません。利用者は自己の責任と判断で本サービスを利用するものとします。</li>
+        </ul>
+      </section>
     </main>
     <script>
     const form=document.getElementById("analyze-form");
@@ -126,7 +164,7 @@ function indexHtml(error = "") {
     });
     </script>
     `;
-  return layout("四人麻雀精算ツール 雀魂対応", body);
+  return layout("ご祝儀精算ツール 雀魂対応", body);
 }
 
 function tr(cells) {
