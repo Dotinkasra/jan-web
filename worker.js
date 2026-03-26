@@ -26,6 +26,26 @@ function signedYen(value) {
   return `${sign}${formatInt(Math.abs(value))} G`;
 }
 
+function signedScoreLabel(value) {
+  return value >= 0 ? `+${value}` : `▲${Math.abs(value)}`;
+}
+
+function formatStartDateTime(unixSeconds) {
+  if (!Number.isFinite(unixSeconds)) return "";
+  const d = new Date(unixSeconds * 1000);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
 const STYLE_CSS = `
 body{margin:0;background:linear-gradient(140deg,#eef4ff,#f7fbff 55%,#f0f4ff);color:#243247;font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}.container{max-width:1000px;margin:0 auto;padding:24px 16px 32px}
@@ -734,9 +754,10 @@ function opponentSummary(user) {
   }));
 }
 
-function buildResultContext(users, sourceName = "") {
+function buildResultContext(users, sourceName = "", startTimeUnix = null) {
   return {
     source_name: sourceName,
+    start_time_text: formatStartDateTime(startTimeUnix),
     users: users.map((user) => {
       const bonusRows = bonusTable(user);
       const [paymentRows, paymentTotal] = paymentDetails(user);
@@ -918,7 +939,7 @@ function sectionUsersHtml(context) {
         <summary class="user-summary">
           <div>
             <h2>${escapeHtml(user.nickname)}</h2>
-            <p>最終得点: ${escapeHtml(String(user.point))} (<span class="${user.score_negative ? "negative" : "positive"}">${escapeHtml(String(user.score))}</span>)</p>
+            <p>最終得点: ${escapeHtml(String(user.point))} (<span class="${user.score_negative ? "negative" : "positive"}">${escapeHtml(signedScoreLabel(user.score))}</span>)</p>
           </div>
           <span class="summary-hint"></span>
         </summary>
@@ -968,19 +989,24 @@ function resultHtml(result, settings) {
   `;
   const sectionHtml = contexts.map((context, i) => {
     const sectionId = `section-${i + 1}`;
-    const sectionTitle = context.source_name
-      ? `対局${i + 1}: ${context.source_name}`
-      : `対局${i + 1}`;
+    const sectionTitle = context.source_name || `牌譜${i + 1}`;
+    const startTimeLabel = context.start_time_text
+      ? `<p class="lead">開始日時: ${escapeHtml(context.start_time_text)}</p>`
+      : "";
     const csvRows = buildCsvRows(context, settings);
     const csvJson = JSON.stringify(csvRows).replaceAll("</script>", "<\\/script>");
     return `
       <section class="card" id="${sectionId}">
         <header class="header-row">
-          <h2 class="section-title">${escapeHtml(sectionTitle)}</h2>
+          <div>
+            ${startTimeLabel}
+            <h2 class="section-title">${escapeHtml(sectionTitle)}</h2>
+          </div>
         </header>
         <div class="toggle-toolbar">
           <button type="button" class="toggle-all" data-section="${sectionId}">全部開く</button>
           <button type="button" class="save-csv" data-section="${sectionId}">CSV保存</button>
+          <button type="button" class="save-image" data-section="${sectionId}">画像で保存</button>
         </div>
         <script type="application/json" id="${sectionId}-csv">${csvJson}</script>
         ${sectionUsersHtml(context)}
@@ -1044,7 +1070,37 @@ function resultHtml(result, settings) {
           downloadCsv(rows, sectionId);
         });
       });
+      document.querySelectorAll(".save-image").forEach((btn)=>{
+        btn.addEventListener("click", async ()=>{
+          const sectionId=btn.dataset.section;
+          const section=document.getElementById(sectionId);
+          if(!section)return;
+          const cards=Array.from(section.querySelectorAll(".user-card"));
+          cards.forEach((card)=>{card.open=true;});
+          refreshToggleButton(section);
+
+          await new Promise((resolve)=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+          if(typeof window.html2canvas!=="function"){
+            alert("画像保存ライブラリの読み込みに失敗しました。再読み込みして再試行してください。");
+            return;
+          }
+          const canvas=await window.html2canvas(section,{
+            backgroundColor:"#f7fbff",
+            scale:2,
+            useCORS:true,
+            logging:false
+          });
+          const stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\\..+$/,"");
+          const link=document.createElement("a");
+          link.href=canvas.toDataURL("image/png");
+          link.download="settlement_result_"+sectionId+"_"+stamp+".png";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     `;
   return layout("精算結果", body);
 }
@@ -1074,7 +1130,8 @@ function analyzeFromPayload(payload) {
   const fileNames = Array.isArray(payload.paifu_file_names) ? payload.paifu_file_names : [];
   const contexts = paifuList.map((paifu, i) => {
     const sourceName = fileNames[i] || `牌譜${i + 1}`;
-    return buildResultContext(analyzePaifu(paifu, settings), sourceName);
+    const startTimeUnix = Number(paifu?.head?.start_time);
+    return buildResultContext(analyzePaifu(paifu, settings), sourceName, startTimeUnix);
   });
 
   if (contexts.length === 1) {
