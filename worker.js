@@ -33,6 +33,7 @@ h1,h2,h3{margin:0 0 12px}.lead{margin-top:8px;color:#5a6a82}
 .header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
 .button-link,button{border:none;background:#2f6feb;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px}
 .toggle-toolbar{display:flex;gap:10px;margin-bottom:16px}
+.toggle-all{width:110px;text-align:center}
 .form-grid{display:grid;gap:14px;background:#fff;border:1px solid #d5dce8;border-radius:12px;padding:16px}
 .form-row{display:grid;gap:12px}.form-row.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.form-row.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .form-grid label{display:grid;gap:6px;color:#5a6a82}.form-grid input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px}
@@ -46,6 +47,7 @@ h1,h2,h3{margin:0 0 12px}.lead{margin-top:8px;color:#5a6a82}
 .settings-grid .settings-row > div{display:grid;gap:4px}.settings-grid span{color:#5a6a82;font-size:12px}
 table{width:100%;border-collapse:collapse;margin-bottom:12px;background:#fff}th,td{border:1px solid #d5dce8;padding:8px;text-align:left;font-size:14px}th{background:#edf3ff}
 .positive{color:#1f7a45}.negative{color:#b83232}.error{color:#fff;background:#cc3b3b;border-radius:8px;padding:10px 12px;margin-bottom:14px}
+.section-title{font-size:18px;line-height:1.35;word-break:break-all}
 @media (max-width:760px){.form-row.cols-2,.form-row.cols-3,.settings-row.cols-2,.settings-row.cols-3{grid-template-columns:1fr}}
 `;
 
@@ -115,7 +117,7 @@ function indexHtml(error = "") {
       <form class="form-area" id="analyze-form">
         <div class="form-grid">
           <div class="form-row cols-3">
-            <label>牌譜ファイル<input type="file" name="paifu_file" accept=".json,.txt" required /></label>
+            <label>牌譜ファイル（複数選択可）<input type="file" name="paifu_files" accept=".json,.txt" multiple required /></label>
             <label>レートプリセット
               <select name="preset" id="preset-select">
                 <option value="custom" selected>カスタム</option>
@@ -176,11 +178,23 @@ function indexHtml(error = "") {
     });
     form.addEventListener("submit",async(e)=>{
       e.preventDefault();
-      const file=(form.querySelector('input[name="paifu_file"]').files||[])[0];
-      if(!file){alert("牌譜ファイルを選択してください。");return;}
+      const fileInput=form.querySelector('input[name="paifu_files"]');
+      const files=Array.from((fileInput&&fileInput.files)||[]);
+      if(files.length===0){alert("牌譜ファイルを選択してください。");return;}
       try{
+        const paifuJsonList=[];
+        const paifuFileNames=[];
+        for(const file of files){
+          try{
+            paifuJsonList.push(JSON.parse(await file.text()));
+            paifuFileNames.push(file.name||"");
+          }catch(parseErr){
+            throw new Error("牌譜ファイルの解析に失敗しました: " + file.name);
+          }
+        }
         const payload={
-          paifu_json:JSON.parse(await file.text()),
+          paifu_json_list:paifuJsonList,
+          paifu_file_names:paifuFileNames,
           rate:form.rate.value,chip:form.chip.value,uma_1:form.uma_1.value,uma_2:form.uma_2.value,
           oka_1:form.oka_1.value,oka_2:form.oka_2.value,all_star_chip:form.all_star_chip.value,
           yiman_tumo_chip:form.yiman_tumo_chip.value,yiman_chip:form.yiman_chip.value
@@ -720,16 +734,51 @@ function opponentSummary(user) {
   }));
 }
 
-function buildResultContext(users) {
+function buildResultContext(users, sourceName = "") {
   return {
+    source_name: sourceName,
     users: users.map((user) => {
       const bonusRows = bonusTable(user);
       const [paymentRows, paymentTotal] = paymentDetails(user);
       const opponentRows = opponentSummary(user);
       const bonusNet = user.bonus_yen - paymentTotal;
       const totalResult = user.score_yen + bonusNet;
+      const tsumoTargetCount = user.tsumo_target_count;
+      const bonusRaw = {
+        ron_count: {
+          aka_dora: user.aka_dora,
+          ura_dora: user.ura_dora,
+          ippatsu: user.ippatsu,
+          allstar: user.allstar,
+          yiman: user.yiman,
+          tobi: user.tobi_ron,
+        },
+        tsumo_count: {
+          aka_dora: user.aka_dora_tumo,
+          ura_dora: user.ura_dora_tumo,
+          ippatsu: user.ippatsu_tumo,
+          allstar: user.allstar_tumo,
+          yiman: user.yiman_tumo,
+          tobi: user.tobi_tumo,
+        },
+        chip_count: {
+          aka_dora: user.aka_dora + user.aka_dora_tumo * tsumoTargetCount,
+          ura_dora: user.ura_dora + user.ura_dora_tumo * tsumoTargetCount,
+          ippatsu: user.ippatsu + user.ippatsu_tumo * tsumoTargetCount,
+          allstar: (user.allstar + user.allstar_tumo * tsumoTargetCount) * user.allstar_chip_rate,
+          yiman: user.yiman * user.yiman_chip_rate + user.yiman_tumo * user.yiman_tumo_chip_rate * tsumoTargetCount,
+          tobi: user.tobi_ron + user.tobi_tumo,
+        },
+      };
       return {
         nickname: user.nickname,
+        point_raw: user.point,
+        score_raw: user.score,
+        score_yen_raw: user.score_yen,
+        bonus_yen_raw: user.bonus_yen,
+        payment_yen_raw: paymentTotal,
+        bonus_net_yen_raw: bonusNet,
+        result_yen_raw: totalResult,
         point: formatInt(user.point),
         score: user.score,
         score_negative: user.score < 0,
@@ -742,13 +791,100 @@ function buildResultContext(users) {
         bonus_rows: bonusRows,
         payment_rows: paymentRows,
         opponent_rows: opponentRows,
+        opponent_rows_raw: user.opponent_summaries || [],
+        bonus_raw: bonusRaw,
       };
     }),
   };
 }
 
-function resultHtml(context, settings) {
-  const usersHtml = context.users.map((user) => {
+function buildCsvRows(context, settings) {
+  const csvRows = [];
+  csvRows.push(["名前", "最終得点", "得点", "得点精算", "祝儀収益", "祝儀支払", "祝儀差引", "結果"]);
+  for (const user of context.users) {
+    csvRows.push([
+      user.nickname,
+      user.point_raw,
+      user.score_raw,
+      user.score_yen_raw,
+      user.bonus_yen_raw,
+      user.payment_yen_raw,
+      user.bonus_net_yen_raw,
+      user.result_yen_raw,
+    ]);
+  }
+  csvRows.push([]);
+
+  csvRows.push(["種類", "名前", "赤ドラ", "裏ドラ", "一発", "オールスター", "役満", "飛ばし"]);
+  for (const user of context.users) {
+    csvRows.push([
+      "ロン回数",
+      user.nickname,
+      user.bonus_raw.ron_count.aka_dora,
+      user.bonus_raw.ron_count.ura_dora,
+      user.bonus_raw.ron_count.ippatsu,
+      user.bonus_raw.ron_count.allstar,
+      user.bonus_raw.ron_count.yiman,
+      user.bonus_raw.ron_count.tobi,
+    ]);
+    csvRows.push([
+      "ツモ回数",
+      user.nickname,
+      user.bonus_raw.tsumo_count.aka_dora,
+      user.bonus_raw.tsumo_count.ura_dora,
+      user.bonus_raw.tsumo_count.ippatsu,
+      user.bonus_raw.tsumo_count.allstar,
+      user.bonus_raw.tsumo_count.yiman,
+      user.bonus_raw.tsumo_count.tobi,
+    ]);
+    csvRows.push([
+      "チップ枚数",
+      user.nickname,
+      user.bonus_raw.chip_count.aka_dora,
+      user.bonus_raw.chip_count.ura_dora,
+      user.bonus_raw.chip_count.ippatsu,
+      user.bonus_raw.chip_count.allstar,
+      user.bonus_raw.chip_count.yiman,
+      user.bonus_raw.chip_count.tobi,
+    ]);
+  }
+  csvRows.push([]);
+
+  csvRows.push(["レート", "チップ金額", "ウマ", "初期点", "オカ", "オールスターチップ倍率", "役満ツモチップ倍率", "役満ロンチップ倍率"]);
+  csvRows.push([
+    settings.rate,
+    settings.chip,
+    `${settings.uma_1}-${settings.uma_2}`,
+    settings.oka_1,
+    settings.oka_2,
+    settings.all_star_chip,
+    settings.yiman_tumo_chip,
+    settings.yiman_chip,
+  ]);
+  csvRows.push([]);
+
+  csvRows.push(["名前", "相手", "得点精算", "受け取りチップ", "支払いチップ", "合計金額"]);
+  for (const user of context.users) {
+    if (!user.opponent_rows_raw || user.opponent_rows_raw.length === 0) {
+      csvRows.push([user.nickname, "なし", 0, 0, 0, 0]);
+      continue;
+    }
+    for (const row of user.opponent_rows_raw) {
+      csvRows.push([
+        user.nickname,
+        row.to,
+        row.score_yen,
+        row.receive_chip,
+        row.pay_chip,
+        row.total_yen,
+      ]);
+    }
+  }
+  return csvRows;
+}
+
+function sectionUsersHtml(context) {
+  return context.users.map((user) => {
     const bonusRows = user.bonus_rows
       .map((row) => tr([
         `<td>${escapeHtml(row.name)}</td>`,
@@ -804,10 +940,12 @@ function resultHtml(context, settings) {
       </details>
       `;
   }).join("");
+}
 
-  const body = `
-    <main class="container">
-      <header class="header-row"><h1>精算結果</h1><a href="/" class="button-link">別の牌譜を読み込む</a></header>
+function resultHtml(result, settings) {
+  const multi = Array.isArray(result.contexts);
+  const contexts = multi ? result.contexts : [result.context];
+  const settingsBlock = `
       <details class="settings-card" open>
         <summary class="settings-summary"><h2>現在の設定</h2><span class="summary-hint"></span></summary>
         <div class="settings-grid">
@@ -827,13 +965,85 @@ function resultHtml(context, settings) {
           </div>
         </div>
       </details>
-      <div class="toggle-toolbar"><button type="button" id="expand-all">全部開く</button><button type="button" id="collapse-all">全部閉じる</button></div>
-      ${usersHtml}
+  `;
+  const sectionHtml = contexts.map((context, i) => {
+    const sectionId = `section-${i + 1}`;
+    const sectionTitle = context.source_name
+      ? `対局${i + 1}: ${context.source_name}`
+      : `対局${i + 1}`;
+    const csvRows = buildCsvRows(context, settings);
+    const csvJson = JSON.stringify(csvRows).replaceAll("</script>", "<\\/script>");
+    return `
+      <section class="card" id="${sectionId}">
+        <header class="header-row">
+          <h2 class="section-title">${escapeHtml(sectionTitle)}</h2>
+        </header>
+        <div class="toggle-toolbar">
+          <button type="button" class="toggle-all" data-section="${sectionId}">全部開く</button>
+          <button type="button" class="save-csv" data-section="${sectionId}">CSV保存</button>
+        </div>
+        <script type="application/json" id="${sectionId}-csv">${csvJson}</script>
+        ${sectionUsersHtml(context)}
+      </section>
+    `;
+  }).join("");
+
+  const body = `
+    <main class="container">
+      <header class="header-row"><h1>精算結果</h1><a href="/" class="button-link">別の牌譜を読み込む</a></header>
+      ${settingsBlock}
+      ${sectionHtml}
     </main>
     <script>
-      const cards=document.querySelectorAll(".user-card");
-      document.getElementById("expand-all").addEventListener("click",()=>cards.forEach(c=>c.open=true));
-      document.getElementById("collapse-all").addEventListener("click",()=>cards.forEach(c=>c.open=false));
+      function csvValue(v){
+        const s=String(v??"");
+        return /[",\\n]/.test(s) ? '"' + s.replaceAll('"','""') + '"' : s;
+      }
+      function downloadCsv(csvRows, suffix){
+        const csvText="\\uFEFF"+csvRows.map((row)=>row.map(csvValue).join(",")).join("\\n");
+        const blob=new Blob([csvText],{type:"text/csv;charset=utf-8"});
+        const link=document.createElement("a");
+        const stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\\..+$/,"");
+        link.href=URL.createObjectURL(blob);
+        link.download="settlement_result_"+suffix+"_"+stamp+".csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
+      function refreshToggleButton(section){
+        const toggleBtn=section.querySelector(".toggle-all");
+        const cards=Array.from(section.querySelectorAll(".user-card"));
+        if(!toggleBtn || cards.length===0)return;
+        const allOpen=cards.every((card)=>card.open);
+        toggleBtn.textContent=allOpen ? "全部閉じる" : "全部開く";
+      }
+      document.querySelectorAll(".toggle-all").forEach((btn)=>{
+        btn.addEventListener("click",()=>{
+          const section=document.getElementById(btn.dataset.section);
+          if(!section)return;
+          const cards=Array.from(section.querySelectorAll(".user-card"));
+          if(cards.length===0)return;
+          const allOpen=cards.every((card)=>card.open);
+          cards.forEach((card)=>{card.open=!allOpen;});
+          refreshToggleButton(section);
+        });
+      });
+      document.querySelectorAll(".card[id^='section-']").forEach((section)=>{
+        section.querySelectorAll(".user-card").forEach((card)=>{
+          card.addEventListener("toggle",()=>refreshToggleButton(section));
+        });
+        refreshToggleButton(section);
+      });
+      document.querySelectorAll(".save-csv").forEach((btn)=>{
+        btn.addEventListener("click",()=>{
+          const sectionId=btn.dataset.section;
+          const csvNode=document.getElementById(sectionId+"-csv");
+          if(!csvNode)return;
+          const rows=JSON.parse(csvNode.textContent||"[]");
+          downloadCsv(rows, sectionId);
+        });
+      });
     </script>
     `;
   return layout("精算結果", body);
@@ -852,8 +1062,25 @@ function analyzeFromPayload(payload) {
     yiman_chip: toInt(payload, "yiman_chip", 10),
   };
 
-  const users = analyzePaifu(payload.paifu_json, settings);
-  return [buildResultContext(users), settings];
+  const paifuListRaw = payload.paifu_json_list ?? payload.paifu_json;
+  const paifuList = Array.isArray(paifuListRaw)
+    ? paifuListRaw
+    : (paifuListRaw ? [paifuListRaw] : []);
+
+  if (paifuList.length === 0) {
+    throw new Error("牌譜ファイルを指定してください。");
+  }
+
+  const fileNames = Array.isArray(payload.paifu_file_names) ? payload.paifu_file_names : [];
+  const contexts = paifuList.map((paifu, i) => {
+    const sourceName = fileNames[i] || `牌譜${i + 1}`;
+    return buildResultContext(analyzePaifu(paifu, settings), sourceName);
+  });
+
+  if (contexts.length === 1) {
+    return [{ context: contexts[0] }, settings];
+  }
+  return [{ contexts }, settings];
 }
 
 export default {
