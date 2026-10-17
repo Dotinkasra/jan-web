@@ -103,6 +103,27 @@ test('double ron shares the discarder and draws award no bonuses', () => {
   assert.equal(current.normalizePaifu(paifu).data.data.actions.length, 5);
 });
 
+test('draws with tenpai entries or null win_info do not count as wins', async () => {
+  for (const winInfo of [
+    players.slice(0, 3).map(player => ({ user_id: player.userId, fang_info: null })),
+    null,
+  ]) {
+    const paifu = structuredClone(sample);
+    const end = paifu.handRecord[0].handEventRecord.find(e => e.eventType === 5);
+    end.data.end_type = 7;
+    end.data.win_info = winInfo;
+    const expected = structuredClone(paifu);
+    expected.handRecord[0].handEventRecord.find(e => e.eventType === 5).data.win_info = [];
+    assert.equal(current.normalizePaifu(paifu).data.data.actions.length, 5);
+    assert.deepEqual(plain(current.analyzePaifu(paifu, settings)), plain(current.analyzePaifu(expected, settings)));
+    const response = await current.worker.fetch(new Request('https://example.test/analyze-json', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paifu_json: paifu, ...settings }),
+    }));
+    assert.equal(response.status, 200);
+  }
+});
+
 test('string event data and unordered players/profits are supported', () => {
   const paifu = structuredClone(sample);
   for (const hand of paifu.handRecord) {

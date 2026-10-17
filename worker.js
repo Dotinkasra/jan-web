@@ -335,6 +335,8 @@ function normalizePaifu(paifu) {
   for (const event of events) {
     if (event.eventType !== 5) continue;
     const data = event.data;
+    // Draws can include tenpai players in win_info with null fang_info.
+    if (data.end_type === 7) continue;
     if (!Array.isArray(data.win_info)) fail("和了情報が不足しています。");
     if (data.win_info.length === 0) continue; // Draws do not award winning-hand bonuses.
     if (![0, 1].includes(data.end_type)) fail("未対応の和了形式です。");
