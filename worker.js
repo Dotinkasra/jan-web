@@ -60,7 +60,7 @@ h1,h2,h3{margin:0 0 12px}.lead{margin-top:8px;color:#5a6a82}
 .form-grid select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px;background:#fff}
 .preset-actions{align-self:end;display:flex;flex-wrap:wrap;gap:8px}
 .custom-preset-row{grid-template-columns:minmax(160px,1fr) auto}
-.preset-actions button{flex:1;padding:8px 10px;min-height:36px}
+.preset-actions button{flex:1;padding:8px 10px;height:36px;line-height:20px;white-space:nowrap}
 #delete-custom-preset{background:#cc3b3b}
 .form-area{display:grid;gap:18px}.submit-wide{display:block;justify-self:stretch;width:100%;min-height:44px}
 .card,.settings-card{background:#fff;border:1px solid #d5dce8;border-radius:12px;padding:16px;margin-bottom:16px}
@@ -171,8 +171,8 @@ function indexHtml(error = "") {
           <div class="form-row custom-preset-row">
             <label>カスタムレートプリセット名<input type="text" name="custom_preset_name" maxlength="80" /></label>
             <div class="preset-actions">
-              <button type="button" id="save-custom-preset">カスタムレートプリセットを保存</button>
-              <button type="button" id="delete-custom-preset" hidden>カスタムレートプリセットを削除する</button>
+              <button type="button" id="save-custom-preset">プリセットを保存</button>
+              <button type="button" id="delete-custom-preset" hidden>プリセットを削除</button>
             </div>
           </div>
           <p id="preset-message" role="status" aria-live="polite" hidden></p>
