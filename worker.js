@@ -188,16 +188,47 @@ function indexHtml(error = "") {
       tenpin:{rate:100,chip:500,uma_1:10,uma_2:30},
       pin_tonpu:{rate:100,chip:1000,uma_1:20,uma_2:50}
     };
+    const settingsStorageKey="jan-web.settings.v1";
+    const settingsFields=Array.from(form.querySelectorAll('input[type="number"],select[name="preset"]'));
+    function saveSettings(){
+      try{
+        const settings={};
+        for(const field of settingsFields)settings[field.name]=field.value;
+        localStorage.setItem(settingsStorageKey,JSON.stringify(settings));
+      }catch{}
+    }
+    try{
+      const settings=JSON.parse(localStorage.getItem(settingsStorageKey));
+      if(settings&&typeof settings==="object"&&!Array.isArray(settings)){
+        for(const field of settingsFields){
+          if(!Object.prototype.hasOwnProperty.call(settings,field.name))continue;
+          const value=settings[field.name];
+          if(typeof value!=="string")continue;
+          if(field===presetSelect){
+            if(Array.from(field.options).some(option=>option.value===value))field.value=value;
+          }else if(value.trim()!==""&&Number.isFinite(Number(value))){
+            field.value=value;
+          }
+        }
+      }
+    }catch{}
     presetSelect.addEventListener("change",()=>{
       const preset=presets[presetSelect.value];
-      if(!preset)return;
-      form.rate.value=preset.rate;
-      form.chip.value=preset.chip;
-      form.uma_1.value=preset.uma_1;
-      form.uma_2.value=preset.uma_2;
+      if(preset){
+        form.rate.value=preset.rate;
+        form.chip.value=preset.chip;
+        form.uma_1.value=preset.uma_1;
+        form.uma_2.value=preset.uma_2;
+      }
+      saveSettings();
     });
+    for(const field of settingsFields){
+      field.addEventListener("input",saveSettings);
+      field.addEventListener("change",saveSettings);
+    }
     form.addEventListener("submit",async(e)=>{
       e.preventDefault();
+      saveSettings();
       const fileInput=form.querySelector('input[name="paifu_files"]');
       const files=Array.from((fileInput&&fileInput.files)||[]);
       if(files.length===0){alert("牌譜ファイルを選択してください。");return;}
