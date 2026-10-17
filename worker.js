@@ -58,7 +58,9 @@ h1,h2,h3{margin:0 0 12px}.lead{margin-top:8px;color:#5a6a82}
 .form-row{display:grid;gap:12px}.form-row.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.form-row.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .form-grid label{display:grid;gap:6px;color:#5a6a82}.form-grid input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px}
 .form-grid select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px;background:#fff}
-#save-custom-preset{align-self:end;justify-self:start;padding:8px 10px;min-height:36px}
+.preset-actions{align-self:end;display:flex;flex-wrap:wrap;gap:8px}
+.custom-preset-row{grid-template-columns:minmax(160px,1fr) auto}
+.preset-actions button{flex:1;padding:8px 10px;min-height:36px}
 #delete-custom-preset{background:#cc3b3b}
 .form-area{display:grid;gap:18px}.submit-wide{display:block;justify-self:stretch;width:100%;min-height:44px}
 .card,.settings-card{background:#fff;border:1px solid #d5dce8;border-radius:12px;padding:16px;margin-bottom:16px}
@@ -70,7 +72,7 @@ h1,h2,h3{margin:0 0 12px}.lead{margin-top:8px;color:#5a6a82}
 table{width:100%;border-collapse:collapse;margin-bottom:12px;background:#fff}th,td{border:1px solid #d5dce8;padding:8px;text-align:left;font-size:14px}th{background:#edf3ff}
 .positive{color:#1f7a45}.negative{color:#b83232}.error{color:#fff;background:#cc3b3b;border-radius:8px;padding:10px 12px;margin-bottom:14px}
 .section-title{font-size:18px;line-height:1.35;word-break:break-all}
-@media (max-width:760px){.form-row.cols-2,.form-row.cols-3,.settings-row.cols-2,.settings-row.cols-3{grid-template-columns:1fr}}
+@media (max-width:760px){.form-row.cols-2,.form-row.cols-3,.custom-preset-row,.settings-row.cols-2,.settings-row.cols-3{grid-template-columns:1fr}}
 `;
 
 const FAVICON_ICO_BASE64 = `
@@ -166,11 +168,13 @@ function indexHtml(error = "") {
             <label>役満ツモチップ倍率<input type="number" name="yiman_tumo_chip" value="5" required /></label>
             <label>役満ロンチップ倍率<input type="number" name="yiman_chip" value="10" required /></label>
           </div>
-          <div class="form-row cols-2">
+          <div class="form-row custom-preset-row">
             <label>カスタムレートプリセット名<input type="text" name="custom_preset_name" maxlength="80" /></label>
-            <button type="button" id="save-custom-preset">カスタムレートプリセットを保存</button>
+            <div class="preset-actions">
+              <button type="button" id="save-custom-preset">カスタムレートプリセットを保存</button>
+              <button type="button" id="delete-custom-preset" hidden>カスタムレートプリセットを削除する</button>
+            </div>
           </div>
-          <button type="button" id="delete-custom-preset" hidden>カスタムレートプリセットを削除する</button>
           <p id="preset-message" role="status" aria-live="polite" hidden></p>
         </div>
         <button type="submit" class="submit-wide">結果を表示</button>
