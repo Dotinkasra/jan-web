@@ -207,7 +207,7 @@ function indexHtml(error = "") {
     const deletePresetButton=document.getElementById("delete-custom-preset");
     const presetMessage=document.getElementById("preset-message");
     const numberFields=Array.from(form.querySelectorAll('input[type="number"]'));
-    const settingsFields=[...numberFields,presetSelect,nameInput];
+    const settingsFields=[...numberFields,presetSelect];
     const validNumber=value=>typeof value==="string"&&value.trim()!==""&&Number.isFinite(Number(value));
     const validPreset=entry=>entry&&typeof entry.id==="string"&&/^user:[a-z0-9-]+$/.test(entry.id)&&
       typeof entry.name==="string"&&entry.name.trim()!==""&&entry.name.length<=80&&
@@ -271,14 +271,14 @@ function indexHtml(error = "") {
           if(typeof value!=="string")continue;
           if(field===presetSelect){
             if(Array.from(field.options).some(option=>option.value===value))field.value=value;
-          }else if(field===nameInput){
-            field.value=value.slice(0,80);
           }else if(validNumber(value)){
             field.value=value;
           }
         }
+        if(Object.prototype.hasOwnProperty.call(settings,"custom_preset_name"))saveSettings();
       }
     }catch{}
+    nameInput.value=selectedCustomPreset()?.name??"";
     updateDeleteButton();
     savePresetButton.addEventListener("click",()=>{
       const name=nameInput.value.trim();
@@ -318,9 +318,9 @@ function indexHtml(error = "") {
     presetSelect.addEventListener("change",()=>{
       showPresetMessage("");
       const saved=selectedCustomPreset();
+      nameInput.value=saved?.name??"";
       if(saved){
         for(const field of numberFields)field.value=saved.settings[field.name];
-        nameInput.value=saved.name;
       }
       const preset=Object.prototype.hasOwnProperty.call(presets,presetSelect.value)?presets[presetSelect.value]:null;
       if(preset){

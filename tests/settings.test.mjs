@@ -68,8 +68,10 @@ test('save all numeric settings, select, and restore across page loads without f
   assert.equal(saved[0].name, 'My preset');
   assert.equal(Object.keys(saved[0].settings).length, 9);
   assert.equal('paifu_files' in saved[0].settings, false);
+  assert.equal('custom_preset_name' in JSON.parse(store.getItem('jan-web.settings.v1')), false);
   const restored = page(store);
   assert.equal(restored.preset.value, id);
+  assert.equal(restored.name.value, 'My preset');
   assert.equal(restored.remove.hidden, false);
   restored.numbers.forEach((field, index) => assert.equal(field.value, String(index + 100)));
   restored.form.rate.value = '999';
@@ -80,6 +82,27 @@ test('save all numeric settings, select, and restore across page loads without f
   restored.preset.fire('change');
   assert.equal(restored.form.rate.value, '100');
   assert.equal(restored.name.value, 'My preset');
+});
+
+test('draft names are not persisted and legacy cached names are removed', () => {
+  const store = storage();
+  store.setItem('jan-web.settings.v1', JSON.stringify({ preset: 'custom', rate: '77', custom_preset_name: 'Old draft' }));
+  const p = page(store);
+  assert.equal(p.name.value, '');
+  assert.equal(p.form.rate.value, '77');
+  assert.equal('custom_preset_name' in JSON.parse(store.getItem('jan-web.settings.v1')), false);
+  p.name.value = 'Unsaved draft';
+  p.name.fire('input');
+  p.form.rate.fire('change');
+  assert.equal(page(store).name.value, '');
+  p.save.fire('click');
+  p.name.value = 'Another draft';
+  p.name.fire('input');
+  assert.equal(page(store).name.value, 'Unsaved draft');
+  p.preset.value = 'tenpin';
+  p.preset.fire('change');
+  assert.equal(p.name.value, '');
+  assert.equal(page(store).name.value, '');
 });
 
 test('overwriting uses the same ID and deletion persists without changing numeric fields', () => {
