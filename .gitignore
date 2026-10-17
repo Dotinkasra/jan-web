@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 .wrangler/
 python_modules/
+
+# Private local replay
+/test_paifu.json

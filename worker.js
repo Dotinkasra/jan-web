@@ -90,9 +90,9 @@ function getFaviconIcoBytes() {
 }
 
 function layout(title, body) {
-  const siteTitle = "ご祝儀精算ツール 雀魂対応";
+  const siteTitle = "ご祝儀精算ツール 雀魂・一番街対応";
   const seoDescription =
-    "雀魂の牌譜JSONをアップロードして、ご祝儀・点棒を含む四人麻雀の精算結果をわかりやすく表示するツールです。";
+    "雀魂・一番街の牌譜JSONをアップロードして、ご祝儀・点棒を含む四人麻雀の精算結果をわかりやすく表示するツールです。";
   const siteUrl = "https://jan-web.tyekepon.workers.dev";
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
@@ -110,7 +110,7 @@ function layout(title, body) {
     `<title>${title}</title>` +
     `<meta name='description' content='${escapeHtml(seoDescription)}'/>` +
     "<meta name='robots' content='index,follow'/>" +
-    "<meta name='keywords' content='雀魂,麻雀,ご祝儀,精算,牌譜,四人麻雀'/>" +
+    "<meta name='keywords' content='雀魂,一番街,麻雀,ご祝儀,精算,牌譜,四人麻雀'/>" +
     `<link rel='canonical' href='${siteUrl}/'/>` +
     `<meta property='og:site_name' content='${escapeHtml(siteTitle)}'/>` +
     `<meta property='og:title' content='${escapeHtml(title)}'/>` +
@@ -131,8 +131,8 @@ function indexHtml(error = "") {
   const errorBlock = error ? `<div class='error'>${escapeHtml(error)}</div>` : "";
   const body = `
     <main class="container">
-      <h1>ご祝儀精算ツール 雀魂対応</h1>
-      <p class="lead">牌譜JSONをアップロードして精算結果を表示します。</p>
+      <h1>ご祝儀精算ツール 雀魂・一番街対応</h1>
+      <p class="lead">雀魂・一番街の牌譜JSONをアップロードして精算結果を表示します。形式は自動判定します。</p>
       ${errorBlock}
       <form class="form-area" id="analyze-form">
         <div class="form-grid">
@@ -170,7 +170,7 @@ function indexHtml(error = "") {
       <section class="settings-card" aria-label="免責と注意事項">
         <h2>免責と注意事項</h2>
         <ul>
-          <li>本サイト（以下「本サービス」）は、雀魂の牌譜データに限り対応します。これ以外の形式・サービスの牌譜については、正確な結果を保証しません。</li>
+          <li>本サイト（以下「本サービス」）は、雀魂・一番街の四人打ち牌譜データに対応します。一番街は対局終了の最終結果を含むJSONが必要です。</li>
           <li>雀魂の牌譜保存方法は、<a href="https://wikiwiki.jp/majsoul-api/%E7%89%8C%E8%AD%9C%E3%82%92%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AB%E4%BF%9D%E5%AD%98%E3%81%99%E3%82%8B%E3%81%AB%E3%82%83" target="_blank" rel="noopener noreferrer">こちら</a>を参照してください。牌譜の取得・保存・利用は、利用者ご自身の責任で、雀魂の利用規約その他適用ルールに従って行ってください。</li>
           <li>本サービスを賭博その他法令または公序良俗に反する目的で利用することを禁止します。</li>
           <li>本サービスは、フリー雀荘のご祝儀ルールに対応した打牌検討および麻雀技術の向上を目的として提供しています。</li>
@@ -225,7 +225,7 @@ function indexHtml(error = "") {
     });
     </script>
     `;
-  return layout("ご祝儀精算ツール 雀魂対応", body);
+  return layout("ご祝儀精算ツール 雀魂・一番街対応", body);
 }
 
 function tr(cells) {
@@ -283,6 +283,92 @@ function makeUser(seat, nickname) {
     bonus_summary_transaction: [],
     score_summary_transaction: [],
     opponent_summaries: [],
+  };
+}
+
+// Normalize only Riichi City input; Mahjong Soul records retain their original path.
+function normalizePaifu(paifu) {
+  if (!Array.isArray(paifu?.handRecord)) return paifu;
+  const fail = (message) => { throw new Error(`一番街の牌譜: ${message}`); };
+  if (paifu.playerCount !== 4) fail("四人打ちの牌譜のみ対応しています。");
+  const hands = paifu.handRecord;
+  const players = hands[0]?.players;
+  if (!Array.isArray(players) || players.length !== 4) fail("プレイヤー情報が不足しています。");
+  const ids = new Map();
+  const seats = new Set();
+  for (const player of players) {
+    if (!Number.isInteger(player.position) || player.position < 0 || player.position > 3 ||
+        seats.has(player.position) || player.userId == null || ids.has(player.userId) ||
+        typeof player.nickname !== "string") fail("プレイヤー情報が不正です。");
+    ids.set(player.userId, player.position);
+    seats.add(player.position);
+  }
+  const events = hands.flatMap((hand) => {
+    if (!Array.isArray(hand.handEventRecord)) fail("局のイベント情報が不足しています。");
+    return hand.handEventRecord.map((event) => {
+      let data = event.data;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch { fail("イベントのJSONが不正です。"); }
+      }
+      if (!data || typeof data !== "object") fail("イベント情報が不正です。");
+      return { ...event, data };
+    });
+  });
+  const bySeat = (rows, valueKey) => {
+    if (!Array.isArray(rows) || rows.length !== 4) fail("点数情報が不足しています。");
+    const result = new Array(4);
+    for (const row of rows) {
+      const seat = ids.get(row.user_id);
+      if (seat === undefined || result[seat] !== undefined || !Number.isInteger(row[valueKey])) {
+        fail("点数情報が不正です。");
+      }
+      result[seat] = row[valueKey];
+    }
+    return result;
+  };
+  const final = events.filter((event) => event.eventType === 6).at(-1);
+  if (!final) fail("対局終了の最終結果がありません。");
+  const points = bySeat(final.data.user_data, "point_num");
+  const actions = [];
+  // ID definitions: https://github.com/cht33/RiichiCity-to-Tenhou-Log-Parser/blob/main/convert.py
+  const fanIds = new Map([[2, 30], [49, 32], [51, 33]]);
+  for (const event of events) {
+    if (event.eventType !== 5) continue;
+    const data = event.data;
+    if (!Array.isArray(data.win_info)) fail("和了情報が不足しています。");
+    if (data.win_info.length === 0) continue; // Draws do not award winning-hand bonuses.
+    if (![0, 1].includes(data.end_type)) fail("未対応の和了形式です。");
+    const deltaScores = bySeat(data.user_profit, "point_profit");
+    const scores = bySeat(data.user_profit, "user_point");
+    if (data.end_type === 0 && deltaScores.filter((point) => point < 0).length !== 1) {
+      fail("放銃者を一意に判定できません。");
+    }
+    const hules = data.win_info.map((win) => {
+      const seat = ids.get(win.user_id);
+      if (seat === undefined || !Array.isArray(win.fang_info)) fail("和了者または役情報が不正です。");
+      const fans = [];
+      let yiman = false;
+      for (const fan of win.fang_info) {
+        if (!Number.isInteger(fan.fang_type) || fan.fang_type < 0 || fan.fang_type > 56 ||
+            !Number.isInteger(fan.fang_num) || fan.fang_num < 0) fail("未対応または不正な役情報です。");
+        // As in the existing logic, multiple yakuman count as one yakuman bonus.
+        if (fan.fang_type >= 31 && fan.fang_type <= 48) yiman = true;
+        if (fanIds.has(fan.fang_type)) fans.push({ id: fanIds.get(fan.fang_type), val: fan.fang_num });
+      }
+      return { seat, zimo: data.end_type === 1, yiman, fans };
+    });
+    actions.push({ type: 1, result: { name: ".lq.RecordHule", data: {
+      hules, delta_scores: deltaScores, scores,
+    } } });
+  }
+  const startTime = events[0]?.startTime;
+  return {
+    head: {
+      accounts: players.map((player) => ({ seat: player.position, nickname: player.nickname })),
+      result: { players: points.map((point, seat) => ({ seat, part_point_1: point })) },
+      start_time: Number.isFinite(startTime) ? startTime / 1000 : undefined,
+    },
+    data: { data: { actions } },
   };
 }
 
@@ -606,6 +692,7 @@ function buildOpponentSummaries(users, chipUnit) {
 }
 
 function analyzePaifu(paifuJson, settings) {
+  paifuJson = normalizePaifu(paifuJson);
   const samma = false;
   const users = createUsers(paifuJson, samma);
   calcBonus(paifuJson, users);
@@ -1129,6 +1216,7 @@ function analyzeFromPayload(payload) {
 
   const fileNames = Array.isArray(payload.paifu_file_names) ? payload.paifu_file_names : [];
   const contexts = paifuList.map((paifu, i) => {
+    paifu = normalizePaifu(paifu);
     const sourceName = fileNames[i] || `牌譜${i + 1}`;
     const startTimeUnix = Number(paifu?.head?.start_time);
     return buildResultContext(analyzePaifu(paifu, settings), sourceName, startTimeUnix);
