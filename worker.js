@@ -58,6 +58,7 @@ h1,h2,h3{margin:0 0 12px}.lead{margin-top:8px;color:#5a6a82}
 .form-row{display:grid;gap:12px}.form-row.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.form-row.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .form-grid label{display:grid;gap:6px;color:#5a6a82}.form-grid input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px}
 .form-grid select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #d5dce8;font-size:14px;background:#fff}
+#save-custom-preset{align-self:end;justify-self:start;padding:8px 10px;min-height:36px}
 .form-area{display:grid;gap:18px}.submit-wide{display:block;justify-self:stretch;width:100%;min-height:44px}
 .card,.settings-card{background:#fff;border:1px solid #d5dce8;border-radius:12px;padding:16px;margin-bottom:16px}
 .user-summary,.settings-summary{list-style:none;display:flex;justify-content:space-between;gap:12px;cursor:pointer}
