@@ -164,6 +164,12 @@ function indexHtml(error = "") {
             <label>役満ツモチップ倍率<input type="number" name="yiman_tumo_chip" value="5" required /></label>
             <label>役満ロンチップ倍率<input type="number" name="yiman_chip" value="10" required /></label>
           </div>
+          <div class="form-row cols-2">
+            <label>カスタムレートプリセット名<input type="text" name="custom_preset_name" maxlength="80" /></label>
+            <button type="button" id="save-custom-preset">カスタムレートプリセットを保存</button>
+          </div>
+          <button type="button" id="delete-custom-preset" hidden>カスタムレートプリセットを削除する</button>
+          <p id="preset-message" role="status" aria-live="polite" hidden></p>
         </div>
         <button type="submit" class="submit-wide">結果を表示</button>
       </form>
@@ -189,7 +195,60 @@ function indexHtml(error = "") {
       pin_tonpu:{rate:100,chip:1000,uma_1:20,uma_2:50}
     };
     const settingsStorageKey="jan-web.settings.v1";
-    const settingsFields=Array.from(form.querySelectorAll('input[type="number"],select[name="preset"]'));
+    const customPresetsStorageKey="jan-web.custom-presets.v1";
+    const nameInput=form.querySelector('input[name="custom_preset_name"]');
+    const savePresetButton=document.getElementById("save-custom-preset");
+    const deletePresetButton=document.getElementById("delete-custom-preset");
+    const presetMessage=document.getElementById("preset-message");
+    const numberFields=Array.from(form.querySelectorAll('input[type="number"]'));
+    const settingsFields=[...numberFields,presetSelect,nameInput];
+    const validNumber=value=>typeof value==="string"&&value.trim()!==""&&Number.isFinite(Number(value));
+    const validPreset=entry=>entry&&typeof entry.id==="string"&&/^user:[a-z0-9-]+$/.test(entry.id)&&
+      typeof entry.name==="string"&&entry.name.trim()!==""&&entry.name.length<=80&&
+      entry.settings&&numberFields.every(field=>validNumber(entry.settings[field.name]));
+    let customPresets=[];
+    try{
+      const saved=JSON.parse(localStorage.getItem(customPresetsStorageKey));
+      if(Array.isArray(saved)){
+        const ids=new Set();
+        customPresets=saved.filter(entry=>{
+          if(!validPreset(entry)||ids.has(entry.id))return false;
+          ids.add(entry.id);return true;
+        });
+      }
+    }catch{}
+    function showPresetMessage(message){
+      presetMessage.textContent=message;
+      presetMessage.hidden=!message;
+    }
+    function selectedCustomPreset(){
+      return customPresets.find(entry=>entry.id===presetSelect.value);
+    }
+    function updateDeleteButton(){
+      deletePresetButton.hidden=!selectedCustomPreset();
+    }
+    function renderCustomPresets(){
+      for(const option of Array.from(presetSelect.options)){
+        if(option.value.startsWith("user:"))option.remove();
+      }
+      for(const entry of customPresets){
+        const option=document.createElement("option");
+        option.value=entry.id;
+        option.textContent=entry.name+"（保存済み）";
+        presetSelect.appendChild(option);
+      }
+    }
+    function persistCustomPresets(next){
+      try{
+        localStorage.setItem(customPresetsStorageKey,JSON.stringify(next));
+        customPresets=next;
+        return true;
+      }catch{
+        showPresetMessage("ブラウザに保存できませんでした。ストレージの設定や空き容量を確認してください。");
+        return false;
+      }
+    }
+    renderCustomPresets();
     function saveSettings(){
       try{
         const settings={};
@@ -206,25 +265,78 @@ function indexHtml(error = "") {
           if(typeof value!=="string")continue;
           if(field===presetSelect){
             if(Array.from(field.options).some(option=>option.value===value))field.value=value;
-          }else if(value.trim()!==""&&Number.isFinite(Number(value))){
+          }else if(field===nameInput){
+            field.value=value.slice(0,80);
+          }else if(validNumber(value)){
             field.value=value;
           }
         }
       }
     }catch{}
+    updateDeleteButton();
+    savePresetButton.addEventListener("click",()=>{
+      const name=nameInput.value.trim();
+      if(!name){showPresetMessage("プリセット名を入力してください。");nameInput.focus();return;}
+      if(name.length>80){showPresetMessage("プリセット名は80文字以内で入力してください。");return;}
+      const settings={};
+      for(const field of numberFields){
+        if(!validNumber(field.value)||!field.checkValidity()){
+          showPresetMessage("数値項目を正しく入力してください。");field.reportValidity();return;
+        }
+        settings[field.name]=field.value;
+      }
+      const existing=customPresets.find(entry=>entry.name===name);
+      if(existing&&!confirm("同じ名前のプリセットを上書きしますか？"))return;
+      const id=existing?.id??("user:"+crypto.randomUUID());
+      const entry={id,name,settings};
+      const next=existing?customPresets.map(item=>item.id===id?entry:item):[...customPresets,entry];
+      if(!persistCustomPresets(next))return;
+      renderCustomPresets();
+      presetSelect.value=id;
+      nameInput.value=name;
+      updateDeleteButton();
+      saveSettings();
+      showPresetMessage("プリセットを保存しました。");
+    });
+    deletePresetButton.addEventListener("click",()=>{
+      const entry=selectedCustomPreset();
+      if(!entry)return;
+      if(!persistCustomPresets(customPresets.filter(item=>item.id!==entry.id)))return;
+      renderCustomPresets();
+      presetSelect.value="custom";
+      nameInput.value="";
+      updateDeleteButton();
+      saveSettings();
+      showPresetMessage("プリセットを削除しました。");
+    });
     presetSelect.addEventListener("change",()=>{
-      const preset=presets[presetSelect.value];
+      showPresetMessage("");
+      const saved=selectedCustomPreset();
+      if(saved){
+        for(const field of numberFields)field.value=saved.settings[field.name];
+        nameInput.value=saved.name;
+      }
+      const preset=Object.prototype.hasOwnProperty.call(presets,presetSelect.value)?presets[presetSelect.value]:null;
       if(preset){
         form.rate.value=preset.rate;
         form.chip.value=preset.chip;
         form.uma_1.value=preset.uma_1;
         form.uma_2.value=preset.uma_2;
       }
+      updateDeleteButton();
       saveSettings();
     });
     for(const field of settingsFields){
-      field.addEventListener("input",saveSettings);
-      field.addEventListener("change",saveSettings);
+      const onSettingsChange=()=>{
+        if(numberFields.includes(field)){
+          presetSelect.value="custom";
+          showPresetMessage("");
+        }
+        updateDeleteButton();
+        saveSettings();
+      };
+      field.addEventListener("input",onSettingsChange);
+      field.addEventListener("change",onSettingsChange);
     }
     form.addEventListener("submit",async(e)=>{
       e.preventDefault();
